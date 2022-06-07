@@ -1,0 +1,15 @@
+Resources:
+  Function:
+    Type: AWS::Serverless::Function
+    Properties:
+      Timeout: 400
+      MemorySize: 2048
+      Handler: ca.josue.aws.lambda.functions.CreateProduct
+      CodeUri: C:\Users\JosueLubaki\Documents\Github\first-lambda\productcheckout
+      Runtime: java11
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          PRODUCT_TABLE: product-checkout-draft-ProductsTable-1J49A26D6A2GS
+          PRODUCT_CHECKOUT_TOPIC: product-checkout-draft-ProductCheckoutTopic-13E1BMUTHMCRL

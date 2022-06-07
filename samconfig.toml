@@ -1,0 +1,11 @@
+version = 0.1
+[default]
+[default.deploy]
+[default.deploy.parameters]
+stack_name = "product-checkout-draft"
+s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-ad8yw4xz9u43"
+s3_prefix = "product-checkout-draft"
+region = "ca-central-1"
+capabilities = "CAPABILITY_IAM"
+disable_rollback = false
+image_repositories = []

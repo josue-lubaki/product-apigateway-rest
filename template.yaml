@@ -1,0 +1,129 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: > 
+  AWS Serverless Application Template for AWS Lambda
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    CodeUri: productcheckout
+    Runtime: java11
+    MemorySize: 512
+    Timeout: 20
+    Environment: # More info about Env Vars: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#environment-object
+      Variables:
+        PRODUCT_TABLE: !Ref ProductsTable
+
+Resources:
+  # SNS Topic
+  ProductCheckoutTopic:
+      Type: AWS::SNS::Topic
+
+  # Dynamo DB Table
+  ProductsTable:
+    Type : AWS::Serverless::SimpleTable
+    Properties:
+      PrimaryKey:
+        Name: id
+        Type: String
+
+  CreateProductFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      Handler: ca.josue.aws.lambda.functions.CreateProduct::handleRequest
+      Architectures:
+        - x86_64
+      Policies:
+        - S3CrudPolicy:
+            BucketName: product-checkout-bucket-${AWS::Region}
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ProductsTable
+        - SNSPublishMessagePolicy: # More info about Policies: https://docs.aws.amazon.com/fr_fr/serverless-application-model/latest/developerguide/serverless-policy-templates.html
+            TopicName: !GetAtt ProductCheckoutTopic.TopicName
+      Environment:
+        Variables:
+          PRODUCT_CHECKOUT_TOPIC: !Ref ProductCheckoutTopic
+      Events:
+        ProductEvent:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /products
+            Method: POST
+
+  ReadProductFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      Handler: ca.josue.aws.lambda.functions.ReadProduct::handleRequest
+      Architectures:
+        - x86_64
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref ProductsTable
+      Events:
+        ProductEvent:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /products
+            Method: GET
+
+  ReadProductByIdFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      Handler: ca.josue.aws.lambda.functions.ReadProductById::handleRequest
+      Architectures:
+        - x86_64
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref ProductsTable
+      Events:
+        ProductEvent:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /products/{id}
+            Method: GET
+
+  LoggingFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      Handler: ca.josue.aws.lambda.functions.Logging::handleRequest
+      Architectures:
+        - x86_64
+      Events:
+        SNSEvent:
+          Type: SNS # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Topic: !Ref ProductCheckoutTopic
+
+#  ErrorHandlerFunction:
+#    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+#    Properties:
+#      Handler: ca.josue.aws.lambda.errorhandling.ErrorHandler::handleRequest
+#      Architectures:
+#        - x86_64
+#      Events:
+#        SNSEvent:
+#          Type: SNS # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+#          Properties:
+#            Topic: !Ref ProductCheckoutDLQ
+
+Outputs:
+  # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
+  # Find out more about other implicit resources you can reference within SAM
+  # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
+  ProductApi:
+    Description: "API Gateway endpoint URL for Prod stage for Product function"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/products/"
+
+  CreateProductsFunction:
+    Description: "Create Product Lambda Function ARN"
+    Value: !GetAtt CreateProductFunction.Arn
+  CreateProductsFunctionIamRole:
+    Description: "Implicit IAM Role created for Create Product function"
+    Value: !GetAtt CreateProductFunctionRole.Arn
+
+  ReadProductsFunction:
+    Description: "Read Product Lambda Function ARN"
+    Value: !GetAtt ReadProductFunction.Arn
+  ReadProductsFunctionIamRole:
+    Description: "Implicit IAM Role created for Read Product function"
+    Value: !GetAtt ReadProductFunctionRole.Arn

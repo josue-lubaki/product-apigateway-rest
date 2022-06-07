@@ -1,0 +1,136 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: 'AWS Serverless Application Template for AWS Lambda
+
+  '
+Globals:
+  Function:
+    CodeUri: productcheckout
+    Runtime: java11
+    MemorySize: 512
+    Timeout: 20
+    Environment:
+      Variables:
+        PRODUCT_TABLE:
+          Ref: ProductsTable
+Resources:
+  ProductCheckoutTopic:
+    Type: AWS::SNS::Topic
+  ProductsTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      PrimaryKey:
+        Name: id
+        Type: String
+  CreateProductFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: ca.josue.aws.lambda.functions.CreateProduct::handleRequest
+      Architectures:
+      - x86_64
+      Policies:
+      - S3CrudPolicy:
+          BucketName: product-checkout-bucket-${AWS::Region}
+      - DynamoDBCrudPolicy:
+          TableName:
+            Ref: ProductsTable
+      - SNSPublishMessagePolicy:
+          TopicName:
+            Fn::GetAtt:
+            - ProductCheckoutTopic
+            - TopicName
+      Environment:
+        Variables:
+          PRODUCT_CHECKOUT_TOPIC:
+            Ref: ProductCheckoutTopic
+      Events:
+        ProductEvent:
+          Type: Api
+          Properties:
+            Path: /products
+            Method: POST
+      CodeUri: CreateProductFunction
+    Metadata:
+      SamResourceId: CreateProductFunction
+  ReadProductFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: ca.josue.aws.lambda.functions.ReadProduct::handleRequest
+      Architectures:
+      - x86_64
+      Policies:
+      - DynamoDBReadPolicy:
+          TableName:
+            Ref: ProductsTable
+      Events:
+        ProductEvent:
+          Type: Api
+          Properties:
+            Path: /products
+            Method: GET
+      CodeUri: ReadProductFunction
+    Metadata:
+      SamResourceId: ReadProductFunction
+  ReadProductByIdFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: ca.josue.aws.lambda.functions.ReadProductById::handleRequest
+      Architectures:
+      - x86_64
+      Policies:
+      - DynamoDBReadPolicy:
+          TableName:
+            Ref: ProductsTable
+      Events:
+        ProductEvent:
+          Type: Api
+          Properties:
+            Path: /products/{id}
+            Method: GET
+      CodeUri: ReadProductByIdFunction
+    Metadata:
+      SamResourceId: ReadProductByIdFunction
+  LoggingFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: ca.josue.aws.lambda.functions.Logging::handleRequest
+      Architectures:
+      - x86_64
+      Events:
+        SNSEvent:
+          Type: SNS
+          Properties:
+            Topic:
+              Ref: ProductCheckoutTopic
+      CodeUri: LoggingFunction
+    Metadata:
+      SamResourceId: LoggingFunction
+Outputs:
+  ProductApi:
+    Description: API Gateway endpoint URL for Prod stage for Product function
+    Value:
+      Fn::Sub: https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/products/
+  CreateProductsFunction:
+    Description: Create Product Lambda Function ARN
+    Value:
+      Fn::GetAtt:
+      - CreateProductFunction
+      - Arn
+  CreateProductsFunctionIamRole:
+    Description: Implicit IAM Role created for Create Product function
+    Value:
+      Fn::GetAtt:
+      - CreateProductFunctionRole
+      - Arn
+  ReadProductsFunction:
+    Description: Read Product Lambda Function ARN
+    Value:
+      Fn::GetAtt:
+      - ReadProductFunction
+      - Arn
+  ReadProductsFunctionIamRole:
+    Description: Implicit IAM Role created for Read Product function
+    Value:
+      Fn::GetAtt:
+      - ReadProductFunctionRole
+      - Arn

@@ -1,0 +1,20 @@
+[
+  {
+    "name": "Burgers",
+    "description" : "Burgers are a type of sandwich. They are made with bread, meat, and cheese. They are usually served with a bun. Burgers are usually eaten in a sandwich.",
+    "price" : 10,
+    "quantity" : 25
+  },
+  {
+    "name": "Pizza",
+    "description" : "Pizza is a flatbread generally topped with tomato sauce and cheese and baked in an oven. It is commonly topped with a selection of meats, vegetables, and condiments.",
+    "price" : 15,
+    "quantity" : 25
+  },
+  {
+      "name": "Hotdogs",
+      "description" : "Hotdogs are a type of sandwich. They are made with bread, meat, and cheese. They are usually served with a bun. Hotdogs are usually eaten in a sandwich.",
+      "price" : 10,
+      "quantity" : 25
+  }
+]
